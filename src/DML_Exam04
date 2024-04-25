@@ -1,0 +1,119 @@
+USE QuanLyDatPhong;
+
+INSERT INTO Category (Name)
+VALUES ('Deluxe'),
+       ('Superior'),
+       ('Standard'),
+       ('Family Suite'),
+       ('Presidential Suite');
+
+INSERT INTO Room (Name, Price, CategoryId)
+VALUES ('Deluxe Room 1', 2000000, 1),
+       ('Deluxe Room 2', 2100000, 1),
+       ('Deluxe Room 3', 2200000, 1),
+       ('Superior Room 1', 1500000, 2),
+       ('Superior Room 2', 1600000, 2),
+       ('Superior Room 3', 1700000, 2),
+       ('Standard Room 1', 1000000, 3),
+       ('Standard Room 2', 1100000, 3),
+       ('Standard Room 3', 1200000, 3),
+       ('Family Suite 1', 3000000, 4),
+       ('Family Suite 2', 3100000, 4),
+       ('Family Suite 3', 3200000, 4),
+       ('Presidential Suite 1', 5000000, 5),
+       ('Presidential Suite 2', 5100000, 5),
+       ('Presidential Suite 3', 5200000, 5);
+
+INSERT INTO Customer (Name, Email, Phone, Address, Gender, BirthDay)
+VALUES ('Nguyen Van A', 'nva@gmail.com', '0909123456', '123 Le Loi, Q1, TP.HCM', 1, '1990-01-01'),
+       ('Tran Thi B', 'ttb@gmail.com', '0909234567', '456 Nguyen Trai, Q5, TP.HCM', 0, '1992-02-02'),
+       ('Le Van C', 'lvc@gmail.com', '0909345678', '789 Tran Hung Dao, Q10, TP.HCM', 1, '1994-03-03');
+
+INSERT INTO Booking (CustomerId)
+VALUES (1),
+       (2),
+       (3);
+
+INSERT INTO BookingDetail (BookingId, RoomId, Price, StartDate, EndDate)
+VALUES (1, 1, 2000000, '2024-05-01 14:00:00', '2024-05-03 12:00:00'),
+       (1, 2, 2100000, '2024-05-01 14:00:00', '2024-05-03 12:00:00'),
+       (2, 4, 1500000, '2024-05-04 14:00:00', '2024-05-06 12:00:00'),
+       (2, 5, 1600000, '2024-05-04 14:00:00', '2024-05-06 12:00:00'),
+       (3, 7, 1000000, '2024-05-07 14:00:00', '2024-05-09 12:00:00'),
+       (3, 8, 1100000, '2024-05-07 14:00:00', '2024-05-09 12:00:00');
+
+# Yêu cầu 1
+# 1
+SELECT Room.Id,
+       Room.Name,
+       Room.Price,
+       Room.SalePrice,
+       Room.Status,
+       Category.Name AS CategoryName,
+       Room.CreatedDate
+FROM Room
+         INNER JOIN Category ON Room.CategoryId = Category.Id
+ORDER BY Room.Price DESC;
+
+# 2
+SELECT Category.Id,
+       Category.Name,
+       COUNT(Room.Id) AS TotalRoom,
+       CASE
+           WHEN Category.Status = 0 THEN 'Ẩn'
+           ELSE 'Hiển thị'
+           END        AS Status
+FROM Category
+         LEFT JOIN Room ON Category.Id = Room.CategoryId
+GROUP BY Category.Id;
+
+# 3
+SELECT Id,
+       Name,
+       Email,
+       Phone,
+       Address,
+       CreatedDate,
+       CASE
+           WHEN Gender = 0 THEN 'Nam'
+           WHEN Gender = 1 THEN 'Nữ'
+           ELSE 'Khác'
+           END                          AS Gender,
+       BirthDay,
+       YEAR(CURDATE()) - YEAR(BirthDay) AS Age
+FROM Customer;
+
+# 4
+DELETE
+FROM Room
+WHERE Id NOT IN (SELECT DISTINCT RoomId FROM BookingDetail);
+
+# 5
+UPDATE Room
+SET SalePrice = SalePrice * 1.1
+WHERE Price >= 250000;
+
+# Yêu cầu 2
+# 1
+CREATE VIEW v_getRoomInfo AS
+SELECT *
+FROM Room
+ORDER BY Price DESC
+LIMIT 10;
+
+# 2
+CREATE VIEW v_getBookingList AS
+SELECT Booking.Id,
+       Booking.BookingDate,
+       CASE
+           WHEN Booking.Status = 0 THEN 'Chưa duyệt'
+           WHEN Booking.Status = 1 THEN 'Đã duyệt'
+           WHEN Booking.Status = 2 THEN 'Đã thanh toán'
+           ELSE 'Đã hủy'
+           END                                                                                         AS Status,
+       Customer.Name                                                                                   AS CusName,
+       Customer.Email,
+       Customer.Phone,
+       (SELECT SUM(BookingDetail.Price) FROM BookingDetail WHERE BookingDetail.BookingId = Booking.Id) AS TotalAmount
+FROM Booking
+         INNER JOIN Customer ON Booking.CustomerId = Customer.Id;
